@@ -1,26 +1,32 @@
 import rocksdb
+import plyvel
+from rlp import decode
 from pprint import pprint
+import decoding
 
-    # column_families = {}
-    # column_families[b"COL_STATE"] = rocksdb.ColumnFamilyOptions()
-    # column_families[b"COL_HEADERS"] = rocksdb.ColumnFamilyOptions()
-    # column_families[b"COL_BODIES"] = rocksdb.ColumnFamilyOptions()
-    # column_families[b"COL_EXTRA"] = rocksdb.ColumnFamilyOptions()
-    # column_families[b"COL_TRACE"] = rocksdb.ColumnFamilyOptions()
-    # column_families[b"COL_ACCOUNT_BLOOM"] = rocksdb.ColumnFamilyOptions()
-    # column_families[b"COL_NODE_INFO"] = rocksdb.ColumnFamilyOptions()
+GETH_DB_PATH = "/home/yao/Ethereum/geth-linux-amd64-1.8.27-4bcc0a37/geth-storage/geth/chaindata"
 
-def test_rocksdbinitial():
-    column_families = {}
-    column_families[b"col0"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col1"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col2"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col3"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col4"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col5"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col6"] = rocksdb.ColumnFamilyOptions()
-    column_families[b"col7"] = rocksdb.ColumnFamilyOptions()
-    db = rocksdb.DB("/Users/yao/Source/Work/Ethereum/parity-ethereum/target/release/storage/chains/ethereum/db/906a34e69aec8c0d/overlayrecent/db",rocksdb.Options(), column_families = column_families)
+HEADER_PREFIX = b"h"
+HEADER_TD_SUFFIX = b"t"
+HEADER_HASH_SUFFIX = b"n"
+HEADER_NUMBER_PREFIX = b"H"
 
-    col0 = db.get_column_family(b'col7')
-    print(list(db.iterkeys(col0)))
+BLOCK_BODY_PREFIX = b"b"
+BLOCK_RECEIPTS_PREFIX = b"r"
+
+TX_LOOKUP_PREFIX = b"l"
+BLOOM_BITS_PREFIX = b"B"
+
+def hhash_key(block_number):
+    bnbytes = block_number.to_bytes(8, 'big')
+    return HEADER_PREFIX + bnbytes + HEADER_HASH_SUFFIX
+
+def bh_key(bn, bh):
+    bnbytes = bn.to_bytes(8, 'big')
+    return HEADER_PREFIX + bnbytes + bh
+
+def test_gethdb_block_rlp():
+    db = plyvel.DB(GETH_DB_PATH)
+    block_hash = db.get(hhash_key(1024))
+    block_header = db.get(bh_key(1024, block_hash))
+    pprint(decoding.block_header(block_header))
