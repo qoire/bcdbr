@@ -1,1 +1,1 @@
-python -m pytest -s test/
+PYTHONPATH="$PYTHONPATH:bcdbr" python -m pytest -s test/

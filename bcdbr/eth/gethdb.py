@@ -1,8 +1,9 @@
 import sys
-import decoding
 import plyvel
 from pprint import pprint
 from rlp import decode
+
+from bcdbr.eth import decoding, types
 
 HEADER_PREFIX = b"h"
 HEADER_TD_SUFFIX = b"t"
@@ -62,34 +63,20 @@ def get_fullblock_from_num(db, block_num, drop_uncles=True):
 	header_bytes = db.get(block_header_key(block_num, block_hash))
 	block_header = decoding.block_header(header_bytes)
 
-	if not block_header['transactionsroot']:
-		raise Exception("block header must contain a transactions root")
-
-	block_struct = {
-		'header': block_header,
-		'transactions': [],
-		'receipts': [],
-		'uncles': []
-	}
-
 	# optimization: no need to retrieve empties
-	if (block_header['transactionsroot'] == EMPTY_TX_ROOT_HASH and
-		(drop_uncles or (block_header['uncleshash'] == EMPTY_UNCLE_HASH))):
-		return block_struct
+	if (block_header.transactionsroot == EMPTY_TX_ROOT_HASH and
+		(drop_uncles or (block_header.uncleshash == EMPTY_UNCLE_HASH))):
+		return types.make_block(block_header, [], [])
 
 	# otherwise, need to retrieve body
 	body_bytes = db.get(block_body_key(block_num, block_hash))
 	body = decoding.block_body(body_bytes)
+	uncles = [] if drop_uncles else body.uncles
 
-	block_struct['header'] = block_header
-	block_struct['transactions'] = body['transactions']
-	block_struct['uncles'] = [] if drop_uncles else body['uncles']
-
-	if (block_header['transactionsroot'] == EMPTY_TX_ROOT_HASH):
-		return block_struct
+	if (block_header.transactionsroot == EMPTY_TX_ROOT_HASH):
+		return types.make_block(block_header, body.transactions, uncles)
 
 	receipt_bytes = db.get(block_receipts_key(block_num, block_hash))
 	receipts = decoding.receipts(receipt_bytes)
-	block_struct['receipts'] = receipts
 
-	return block_struct
+	return types.make_block(block_header, body.transactions, uncles, receipts)
