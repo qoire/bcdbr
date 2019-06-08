@@ -1,13 +1,13 @@
-from bcdbr.util import keccak256
+from bcdbr.util.hashutil import keccak256
 
 HEADER_BYTES = 6
-def verify_bloom(in: bytes, bloom: bytes) -> bytes:
+def verify_bloom(input: bytes, bloom: bytes) -> bytes:
 	bloom: int = int.from_bytes(bloom, "big")
 	i: int = 0
 	while (i < HEADER_BYTES):
-		high: int = in[i] & 0xFF
+		high: int = input[i] & 0xFF
 		i = i + 1
-		low: int = in[i] & 0xFF
+		low: int = input[i] & 0xFF
 		i = i + 1
 		bloom_bit: int = 1 << ((low + (high << 8)) & 2047)
 
@@ -15,10 +15,10 @@ def verify_bloom(in: bytes, bloom: bytes) -> bytes:
 			return False
 	return True
 
-def bloom_has_address(address: bytes, bloom: bytes) -> bytes:
+def has_address(address: bytes, bloom: bytes) -> bytes:
 	addrHash: bytes = keccak256(address)
-	return verify(addrHash, bloom)
+	return verify_bloom(addrHash, bloom)
 
-def bloom_has_event(event: bytes, bloom: bytes) -> bytes:
+def has_event(event: bytes, bloom: bytes) -> bytes:
 	eventHash: bytes = keccak256(keccak256(event))
-	return verify(eventHash, bloom)
+	return verify_bloom(eventHash, bloom)

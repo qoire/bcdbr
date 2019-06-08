@@ -53,6 +53,17 @@ def get_receipts(db, block_num):
 
 	return db.get(block_receipts_key(block_num, block_hash))
 
+def get_block_header(db, block_num):
+	hh_key = header_hash_key(block_num)
+	block_hash = db.get(hh_key)
+
+	if not block_hash:
+		return None
+
+	header_bytes = db.get(block_header_key(block_num, block_hash))
+	block_header = decoding.block_header(header_bytes)
+	return block_header
+
 def get_fullblock_from_num(db, block_num, drop_uncles=True):
 	hh_key = header_hash_key(block_num)
 	block_hash = db.get(hh_key)
@@ -66,7 +77,7 @@ def get_fullblock_from_num(db, block_num, drop_uncles=True):
 	# optimization: no need to retrieve empties
 	if (block_header.transactionsroot == EMPTY_TX_ROOT_HASH and
 		(drop_uncles or (block_header.uncleshash == EMPTY_UNCLE_HASH))):
-		return types.make_block(block_header, [], [])
+		return types.make_block(block_header, [], [], [])
 
 	# otherwise, need to retrieve body
 	body_bytes = db.get(block_body_key(block_num, block_hash))
@@ -74,7 +85,7 @@ def get_fullblock_from_num(db, block_num, drop_uncles=True):
 	uncles = [] if drop_uncles else body.uncles
 
 	if (block_header.transactionsroot == EMPTY_TX_ROOT_HASH):
-		return types.make_block(block_header, body.transactions, uncles)
+		return types.make_block(block_header, [], uncles, [])
 
 	receipt_bytes = db.get(block_receipts_key(block_num, block_hash))
 	receipts = decoding.receipts(receipt_bytes)
